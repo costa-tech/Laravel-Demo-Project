@@ -351,7 +351,7 @@ This project is open-sourced software licensed under the [MIT license](https://o
 
 ## 📞 Support
 
-For support, email your-email@example.com or create an issue in the repository.
+For support, email your-himsaradecosta@gmail.com or create an issue in the repository.
 
 ---
 
