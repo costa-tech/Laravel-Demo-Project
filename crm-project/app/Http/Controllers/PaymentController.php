@@ -63,6 +63,45 @@ class PaymentController extends Controller
 
     public function success(Invoice $invoice)
     {
+        // Verify payment status with Stripe and update transaction if needed
+        if ($invoice->stripe_payment_intent_id) {
+            try {
+                $paymentIntent = PaymentIntent::retrieve($invoice->stripe_payment_intent_id);
+                
+                if ($paymentIntent->status === 'succeeded') {
+                    // Update invoice status if not already paid
+                    if ($invoice->status !== 'paid') {
+                        $invoice->update(['status' => 'paid']);
+                    }
+                    
+                    // Find and update pending transaction
+                    $transaction = Transaction::where('stripe_payment_intent_id', $paymentIntent->id)
+                        ->where('invoice_id', $invoice->id)
+                        ->where('status', 'pending')
+                        ->first();
+                    
+                    if ($transaction) {
+                        $transaction->update([
+                            'status' => 'completed',
+                            'payment_details' => json_encode([
+                                'method' => 'stripe',
+                                'payment_method' => $paymentIntent->payment_method ?? 'card',
+                                'completed_at' => now()->toISOString(),
+                                'verified_on_success_page' => true
+                            ])
+                        ]);
+                        
+                        Log::info('Transaction updated on success page for invoice: ' . $invoice->id);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Error verifying payment on success page: ' . $e->getMessage());
+            }
+        }
+
+        // Refresh invoice to get latest data
+        $invoice->refresh();
+        
         return view('payments.success', compact('invoice'));
     }
 

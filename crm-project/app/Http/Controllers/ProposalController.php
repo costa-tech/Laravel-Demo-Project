@@ -59,10 +59,16 @@ class ProposalController extends Controller
             'status' => 'required|in:draft,sent,accepted,rejected'
         ]);
 
-        $proposal->update($request->all());
+        try {
+            $proposal->update($request->all());
 
-        return redirect()->route('proposals.index')
-            ->with('success', 'Proposal updated successfully!');
+            return redirect()->route('proposals.index')
+                ->with('success', 'Proposal updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update proposal: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Proposal $proposal)

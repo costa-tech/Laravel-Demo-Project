@@ -9,6 +9,23 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
+                    
+                    @if(session('error'))
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    @if($errors->any())
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                            <ul class="list-disc list-inside">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('proposals.update', $proposal->id) }}">
                         @csrf
                         @method('PUT')
@@ -52,6 +69,13 @@
                                     <option value="rejected" {{ old('status', $proposal->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
                                 </select>
                                 <x-input-error :messages="$errors->get('status')" class="mt-2" />
+                            </div>
+
+                            <!-- Valid Until -->
+                            <div>
+                                <x-input-label for="valid_until" :value="__('Valid Until')" />
+                                <x-text-input id="valid_until" class="block mt-1 w-full" type="date" name="valid_until" :value="old('valid_until', $proposal->valid_until ? $proposal->valid_until->format('Y-m-d') : '')" required />
+                                <x-input-error :messages="$errors->get('valid_until')" class="mt-2" />
                             </div>
                         </div>
 
