@@ -37,6 +37,11 @@ class Invoice extends Model
         return $this->hasOne(Transaction::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     public static function generateInvoiceNumber()
     {
         $lastInvoice = self::orderBy('id', 'desc')->first();

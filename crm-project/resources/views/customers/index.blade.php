@@ -53,7 +53,9 @@
                                 <tr>
                                     <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No customers found</td>
                                 </tr>
-                                        </table>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
 
                     @if($customers->hasPages())

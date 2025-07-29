@@ -38,6 +38,20 @@ class PaymentController extends Controller
                 ]);
 
                 $invoice->update(['stripe_payment_intent_id' => $paymentIntent->id]);
+
+                // Create a pending transaction record
+                Transaction::create([
+                    'customer_id' => $invoice->customer_id,
+                    'invoice_id' => $invoice->id,
+                    'transaction_id' => 'TXN-' . strtoupper(uniqid()),
+                    'amount' => $invoice->total_amount,
+                    'status' => 'pending',
+                    'stripe_payment_intent_id' => $paymentIntent->id,
+                    'payment_details' => json_encode([
+                        'method' => 'stripe',
+                        'created_at' => now()->toISOString()
+                    ])
+                ]);
             }
 
             return view('payments.show', compact('invoice', 'paymentIntent'));
@@ -94,19 +108,37 @@ class PaymentController extends Controller
                 // Update invoice status
                 $invoice->update(['status' => 'paid']);
 
-                // Create transaction record
-                Transaction::create([
-                    'customer_id' => $invoice->customer_id,
-                    'invoice_id' => $invoice->id,
-                    'transaction_id' => 'TXN-' . strtoupper(uniqid()),
-                    'amount' => $invoice->total_amount,
-                    'status' => 'completed',
-                    'stripe_payment_intent_id' => $paymentIntent['id'],
-                    'payment_details' => json_encode([
-                        'method' => 'stripe',
-                        'payment_method' => $paymentIntent['payment_method'] ?? 'card'
-                    ])
-                ]);
+                // Find and update existing transaction or create new one
+                $transaction = Transaction::where('stripe_payment_intent_id', $paymentIntent['id'])
+                    ->where('invoice_id', $invoice->id)
+                    ->first();
+
+                if ($transaction) {
+                    // Update existing transaction
+                    $transaction->update([
+                        'status' => 'completed',
+                        'payment_details' => json_encode([
+                            'method' => 'stripe',
+                            'payment_method' => $paymentIntent['payment_method'] ?? 'card',
+                            'completed_at' => now()->toISOString()
+                        ])
+                    ]);
+                } else {
+                    // Create new transaction if none exists
+                    Transaction::create([
+                        'customer_id' => $invoice->customer_id,
+                        'invoice_id' => $invoice->id,
+                        'transaction_id' => 'TXN-' . strtoupper(uniqid()),
+                        'amount' => $invoice->total_amount,
+                        'status' => 'completed',
+                        'stripe_payment_intent_id' => $paymentIntent['id'],
+                        'payment_details' => json_encode([
+                            'method' => 'stripe',
+                            'payment_method' => $paymentIntent['payment_method'] ?? 'card',
+                            'completed_at' => now()->toISOString()
+                        ])
+                    ]);
+                }
 
                 Log::info('Payment processed successfully for invoice: ' . $invoice->id);
             }
@@ -121,19 +153,37 @@ class PaymentController extends Controller
             $invoice = Invoice::where('stripe_payment_intent_id', $paymentIntent['id'])->first();
             
             if ($invoice) {
-                // Create failed transaction record
-                Transaction::create([
-                    'customer_id' => $invoice->customer_id,
-                    'invoice_id' => $invoice->id,
-                    'transaction_id' => 'TXN-' . strtoupper(uniqid()),
-                    'amount' => $invoice->total_amount,
-                    'status' => 'failed',
-                    'stripe_payment_intent_id' => $paymentIntent['id'],
-                    'payment_details' => json_encode([
-                        'method' => 'stripe',
-                        'error' => 'Payment failed'
-                    ])
-                ]);
+                // Find and update existing transaction or create new one
+                $transaction = Transaction::where('stripe_payment_intent_id', $paymentIntent['id'])
+                    ->where('invoice_id', $invoice->id)
+                    ->first();
+
+                if ($transaction) {
+                    // Update existing transaction
+                    $transaction->update([
+                        'status' => 'failed',
+                        'payment_details' => json_encode([
+                            'method' => 'stripe',
+                            'error' => 'Payment failed',
+                            'failed_at' => now()->toISOString()
+                        ])
+                    ]);
+                } else {
+                    // Create failed transaction record
+                    Transaction::create([
+                        'customer_id' => $invoice->customer_id,
+                        'invoice_id' => $invoice->id,
+                        'transaction_id' => 'TXN-' . strtoupper(uniqid()),
+                        'amount' => $invoice->total_amount,
+                        'status' => 'failed',
+                        'stripe_payment_intent_id' => $paymentIntent['id'],
+                        'payment_details' => json_encode([
+                            'method' => 'stripe',
+                            'error' => 'Payment failed',
+                            'failed_at' => now()->toISOString()
+                        ])
+                    ]);
+                }
 
                 Log::info('Payment failed for invoice: ' . $invoice->id);
             }
