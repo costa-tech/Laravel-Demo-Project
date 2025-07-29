@@ -345,13 +345,10 @@ php artisan migrate:status
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 License
-
-This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 ## 📞 Support
 
-For support, email your-email@example.com or create an issue in the repository.
+For support, email himsaradecosta@gmail.com or create an issue in the repository.
 
 ---
 
